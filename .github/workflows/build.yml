@@ -1,0 +1,40 @@
+name: Build VSPhone IPA
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Archive (unsigned)
+        run: |
+          xcodebuild archive \
+            -project VSPhone.xcodeproj \
+            -scheme VSPhone \
+            -configuration Release \
+            -archivePath $RUNNER_TEMP/VSPhone.xcarchive \
+            -destination "generic/platform=iOS" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            SKIP_INSTALL=NO
+
+      - name: Package IPA
+        run: |
+          APP=$(find $RUNNER_TEMP/VSPhone.xcarchive -name "*.app" | head -1)
+          mkdir -p $RUNNER_TEMP/Payload
+          cp -r "$APP" $RUNNER_TEMP/Payload/
+          cd $RUNNER_TEMP && zip -r VSPhone.ipa Payload/
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: VSPhone-IPA
+          path: ${{ runner.temp }}/VSPhone.ipa
+          retention-days: 30
