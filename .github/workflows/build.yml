@@ -10,7 +10,11 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: List schemes (debug)
+        run: xcodebuild -project VSPhone.xcodeproj -list
 
       - name: Build Archive (unsigned)
         run: |
@@ -18,19 +22,21 @@ jobs:
             -project VSPhone.xcodeproj \
             -scheme VSPhone \
             -configuration Release \
-            -archivePath $RUNNER_TEMP/VSPhone.xcarchive \
+            -archivePath "$RUNNER_TEMP/VSPhone.xcarchive" \
             -destination "generic/platform=iOS" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            SKIP_INSTALL=NO
+            SKIP_INSTALL=NO \
+            | xcpretty || true
 
       - name: Package IPA
         run: |
-          APP=$(find $RUNNER_TEMP/VSPhone.xcarchive -name "*.app" | head -1)
-          mkdir -p $RUNNER_TEMP/Payload
-          cp -r "$APP" $RUNNER_TEMP/Payload/
-          cd $RUNNER_TEMP && zip -r VSPhone.ipa Payload/
+          APP=$(find "$RUNNER_TEMP/VSPhone.xcarchive" -name "*.app" | head -1)
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -r "$APP" "$RUNNER_TEMP/Payload/"
+          cd "$RUNNER_TEMP"
+          zip -r VSPhone.ipa Payload/
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
